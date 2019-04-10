@@ -10,57 +10,56 @@ import UIKit
 import PubNub
 class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, UITableViewDelegate {
     
-    
+    //Our Message struct, makes working with messages a little easier
     struct Message {
         var message: String
         var username: String
         var uuid: String
     }
-    var earliestMessageTime: NSNumber = 0
+    var messages: [Message] = []
+    
+    //Var to keep track of the earliest message we loaded
+    var earliestMessageTime: NSNumber = -1
+    
+    //To keep track if we are already loading more messages
     var loadingMore = false
     
+    //Our PubNub object that we will use to publish, subscribe, and get the history of our channel
     var client: PubNub!
-    var messages: [Message] = []
-    var appDelegate: AppDelegate!
     
+    //We populated this with the information from our messages array
     @IBOutlet weak var tableView: UITableView!
     
-    
+    //Temporary values
     var channelName = "Channel Name"
     var username = "Username"
-    //FIXME: When connected make sure that this page reopens
-    //FIXME: Make it load more when at the top of the messages
+    
+    //Where our messages come in
     @IBOutlet weak var messageTextField: UITextField!
     
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        //Settin the channel name at the top of the page in the nav bar
         self.navigationController?.navigationBar.topItem?.title = channelName
         
         //Worling with the table view
         tableView.delegate = self
         tableView.dataSource = self
         
-        //        let indexPath = IndexPath(row: messages.count-1, section: 0)
-        //        tableView.scrollToRow(at: indexPath, at: .bottom, animated: false)
         
-        
-        //getting the pubnub client refrence from the app delegate
-        appDelegate = (UIApplication.shared.delegate as! AppDelegate)
-        client = appDelegate.client
+        //Setting up our PubNub object!
+        let configuration = PNConfiguration(publishKey: "pub-c-4ce95ecd-4447-481d-8cc7-1080fd34f073", subscribeKey: "sub-c-7e0443e2-5634-11e9-b63d-361a0ea3785d")
+        //Gets rid of deprecated warning
+                configuration.stripMobilePayload = false
+        //Making each connection identifiable for future development
+                configuration.uuid = UUID().uuidString
+                client = PubNub.clientWithConfiguration(configuration)
         client.addListener(self)
         client.subscribeToChannels([channelName],withPresence: true)
         
-//        for i in 1...100{
-//            let messageObject : [String:Any] =
-//                [
-//                    "message" : String(i),
-//                    "username" : username,
-//                    "uuid": client.uuid()
-//            ]
-//            client.publish(messageObject, toChannel: channelName)
-//        }
-        
+        //We load the last x messages to populate the tableview
         loadLastMessages()
     }
     
@@ -68,75 +67,74 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
     
     
     //MARK: Actions
-    
+    //When the return key is pressed, the message will send
     @IBAction func returnKey(_ sender: UITextField) {
         publishMessage()
     }
-    
+    //When the send button is clicked, the message will send
     @IBAction func sendMessage(_ sender: UIButton) {
         publishMessage()
     }
     @IBAction func unsubscribeButton(_ sender: UIBarButtonItem) {
-        let defaults = UserDefaults.standard
-        defaults.removeObject(forKey: "username")
-        defaults.removeObject(forKey: "channel")
-        defaults.set(false, forKey: "subscribed")
+        
         client.unsubscribeFromChannelGroups([channelName], withPresence: true)
     }
     
     //MARK: PubNub Functions
     func publishMessage() {
-        // let messageObject = Message(message: messageTextField.text ?? "empty string", username: "tester", uuid: client.uuid())
-        let messageString: String = messageTextField.text ?? "empty message"
-        let messageObject : [String:Any] =
-            [
-                "message" : messageString,
-                "username" : username,
-                "uuid": client.uuid()
-        ]
-        //        do{
-        //            let jData = try JSONSerialization.data(withJSONObject: messageObject, options: [])
-        //            let jString = String(data: jData, encoding: .ascii)
-        //
-        //        }catch{
-        //            print("json didnt work")
-        //        }
-        
-        
-        client.publish(messageObject, toChannel: channelName) { (status) in
-            print(status.data.information)
+        if(messageTextField.text != "" || messageTextField.text != nil){
+            let messageString: String = messageTextField.text!
+            let messageObject : [String:Any] =
+                [
+                    "message" : messageString,
+                    "username" : username,
+                    "uuid": client.uuid()
+            ]
+            
+            client.publish(messageObject, toChannel: channelName) { (status) in
+                print(status.data.information)
+            }
+            messageTextField.text = ""
         }
-        messageTextField.text = ""
+        
         
         
         
         
     }
+    //This function is called when this view initialy loads to populate the tableview
     func loadLastMessages()
     {
-        //, start: nil, end: nil, includeTimeToken: true
-        client.historyForChannel(channelName,start: nil,end: nil,limit:2){ (result, status) in
-            if(result != nil){
-                self.earliestMessageTime = (result?.data.start ??  0)
-                print(result!.data.messages)
-                let messageDict = (result!.data.messages as! [[String:Any]])
+        //The PubNub Function that returns an object of X messages, and when the first and last messages were sent.
+        //The limit is how many messages are received with a maximum and default of 100.
+        client.historyForChannel(channelName,start: nil,end: nil,limit:5){ (result, status) in
+            if(result != nil && status == nil){
                 
+                //We save when the earliest message was sent in order to get ones previous to it when we want to load more.
+                self.earliestMessageTime = result!.data.start
+                
+                //Convert the [Any] package we get into a dictionary of String and Any
+                let messageDict = result!.data.messages as! [[String:String]]
+                
+                //Creating new messages from it and putting them at the end of messages array
                 for m in messageDict{
                     let message = Message(message: m["message"] as! String, username: m["username"] as! String, uuid: m["uuid"] as! String)
                     self.messages.append(message)
                 }
-                
+                //Reload the table with the new messages and bring the tableview down to the bottom to the most recent messages
                 self.tableView.reloadData()
                 if(!self.messages.isEmpty){
                     let indexPath = IndexPath(row: self.messages.count-1, section: 0)
-                    self.tableView.scrollToRow(at: indexPath, at: .bottom, animated: false)
+                    self.tableView.scrollToRow(at: indexPath, at: .bottom, animated: true)
                 }
                 
             }
-            
-            if(status != nil)
-            {
-                print(status!)
+            else if(status !=  nil){
+                print(status!.category)
+                
+            }
+            else{
+                print("everything is nil whaaat")
             }
         }
     }
@@ -147,7 +145,6 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
     func client(_ client: PubNub, didReceive status: PNStatus) {
         // Check whether received information about successful subscription or restore.
         if status.operation == .unsubscribeOperation && status.category == .PNDisconnectedCategory{
-            print("unsubscribed")
             performSegue(withIdentifier: "leaveChannelSegue", sender: self)
             
         }
@@ -156,14 +153,13 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
         }
     }
     func client(_ client: PubNub, didReceiveMessage message: PNMessageResult) {
-        //WHENEVER WE GET A NEW MESSAGE, WE PUT IT AT THE END OF OUR TABLE AND REFRESH THE LIST
-        //let message = Message(message: m["message"] as! String, username: m["username"] as! String, uuid: m["uuid"] as! String)
-        //self.messages.append(message)
+        //Whenever we receive a new message, we add it to the end of our messages array and
+        //reload the table so that it shows at thebottom.
+
         if(channelName == message.data.channel)
         {
             let m = message.data.message as! [String:Any]
             self.messages.append(Message(message: m["message"] as! String, username: m["username"] as! String, uuid: m["uuid"] as! String))
-            print(messages.last!)
             tableView.reloadData()
             
             
@@ -179,23 +175,26 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
     
     
     //MARK: Table view methods
+    
+    //This method allows users to query for more messages by dragging down from the top.
     func scrollViewDidScroll(_ scrollView: UIScrollView){
+        //If we are not loading more messages already
         if(!loadingMore){
             
-            //find how long one screen size
-            //            let scrollHeight = tableView.contentSize.height
-            //            let scrollOffset = scrollHeight - tableView.bounds.size.height
-            print(scrollView.contentOffset.y)
-            // When the user has scrolled past the threshold, start requesting
-            if(scrollView.contentOffset.y < 0 ) {
+            //-40 is when you have dragged down from the top of all the messages
+            if(scrollView.contentOffset.y < -40 ) {
                 loadingMore = true
-                self.client.historyForChannel(channelName, start: earliestMessageTime, end: nil,limit:2) { (result, status) in
-                    if(result != nil){
-                        print(result!.data)
-
+                
+                //Gets the channels history that starts from the earliest message we received and
+                //we can set a limit here to however many messages we want, 100 and under
+                client.historyForChannel(channelName, start: earliestMessageTime, end: nil,limit:10) { (result, status) in
+                    //We check if the result is nil and if the data we get back is empty,
+                    //if the start and end are 0 that means we have gone through all the back catalog of messages
+                    if(result != nil && result?.data.start != 0 && result?.data.end != 0){
                         self.earliestMessageTime = result!.data.start
                         let messageDict = (result?.data.messages as! [[String:Any]])
                         
+                        //Add all the new messages to a new arry and then insert it into the messages array
                         var newMessages :[Message] = []
                         for m in messageDict{
                             let message = Message(message: m["message"] as! String, username: m["username"] as! String, uuid: m["uuid"] as! String)
@@ -204,6 +203,10 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
                         self.messages.insert(contentsOf: newMessages, at: 0)
                         
                         self.tableView.reloadData()
+                        
+                        
+//                        let indexPath = IndexPath(row: 11, section: 0)
+//                        self.tableView.scrollToRow(at: indexPath, at: .bottom, animated: false)
                         
                         self.loadingMore = false
                         
@@ -220,7 +223,7 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
         
     }
     
-    
+    //Tableview functions required.
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         //change later
         return messages.count
