@@ -10,7 +10,7 @@ This app is powered by PubNub, create solutions for any use case with their fast
 
 ## Project setup
 - [ ] Clone this repository and open the .xworkspace file in XCode.
-- [ ] Put in your own Publish and Subscribe keys into the ChannelVC.swift file. If you don't have your own keys follow [this guide!](https://medium.com/@shabashiki/how-to-use-pubnub-in-your-swift-application-90aa873e0c79)
+- [ ] Put in your own Publish and Subscribe keys into the ChannelVC.swift file. If you don't have your own keys follow [this guide to create your own!](https://medium.com/@shabashiki/how-to-use-pubnub-in-your-swift-application-90aa873e0c79)
 - [ ] Run the project!
 
 ## Further
