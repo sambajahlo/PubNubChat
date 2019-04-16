@@ -54,7 +54,7 @@
                     <connections>
                         <outlet property="channelTextField" destination="U4w-ID-LrM" id="J5X-sM-LhU"/>
                         <outlet property="usernameTextField" destination="uHf-2p-XPx" id="ukP-CQ-w7J"/>
-                        <segue destination="TUe-e1-pws" kind="presentation" identifier="connectSegue" id="7hv-n6-tG6"/>
+                        <segue destination="TUe-e1-pws" kind="show" identifier="connectSegue" id="7hv-n6-tG6"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
@@ -146,7 +146,7 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="lWM-fg-8Lj" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="2084" y="161"/>
+            <point key="canvasLocation" x="1010" y="188"/>
         </scene>
         <!--Navigation Controller-->
         <scene sceneID="uMc-HI-tct">
@@ -164,7 +164,7 @@
                 </navigationController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="0E4-xD-lih" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="407" y="188"/>
+            <point key="canvasLocation" x="228" y="188"/>
         </scene>
     </scenes>
 </document>

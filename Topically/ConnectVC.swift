@@ -50,10 +50,14 @@ class ConnectVC: UIViewController, PNObjectEventListener{
 //        print("Received message in ConnectVC:",message.data)
 //    }
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        
+        //Accessing Nav Controller and ChannelVC view
         if let navigationController = segue.destination as? UINavigationController,
             let channelVC = navigationController.viewControllers.first as? ChannelVC{
             var username = ""
             var channel = ""
+            
+            //Replacing empty values with default ones
             if(usernameTextField.text == "" ){
                 username = "A Naughty Moose"
             }
@@ -62,18 +66,15 @@ class ConnectVC: UIViewController, PNObjectEventListener{
             }
             if(channelTextField.text == "" ){
                 print("nothing in channel")
-                channel = "Random"
+                channel = "General"
             }
             else{
                 channel = channelTextField.text ?? "General"
             }
             
-            
+            //Setting values in ChannelVC 
             channelVC.username = username
             channelVC.channelName = channel
-            
-            
-            
         }
     }
     //Use this to check if the user input anything  into the channel or username textfields

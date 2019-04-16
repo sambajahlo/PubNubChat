@@ -18,7 +18,7 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
     }
     var messages: [Message] = []
     
-    //Var to keep track of the earliest message we loaded
+    //Keep track of the earliest message we loaded
     var earliestMessageTime: NSNumber = -1
     
     //To keep track if we are already loading more messages
@@ -41,10 +41,10 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        //Settin the channel name at the top of the page in the nav bar
+        //Setting the channel name at the top of the page in the nav bar
         self.navigationController?.navigationBar.topItem?.title = channelName
         
-        //Worling with the table view
+        //Working with the table view
         tableView.delegate = self
         tableView.dataSource = self
         
@@ -52,10 +52,10 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
         //Setting up our PubNub object!
         let configuration = PNConfiguration(publishKey: "pub-c-4ce95ecd-4447-481d-8cc7-1080fd34f073", subscribeKey: "sub-c-7e0443e2-5634-11e9-b63d-361a0ea3785d")
         //Gets rid of deprecated warning
-                configuration.stripMobilePayload = false
+        configuration.stripMobilePayload = false
         //Making each connection identifiable for future development
-                configuration.uuid = UUID().uuidString
-                client = PubNub.clientWithConfiguration(configuration)
+        configuration.uuid = UUID().uuidString
+        client = PubNub.clientWithConfiguration(configuration)
         client.addListener(self)
         client.subscribeToChannels([channelName],withPresence: true)
         
@@ -78,6 +78,7 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
     @IBAction func unsubscribeButton(_ sender: UIBarButtonItem) {
         
         client.unsubscribeFromChannelGroups([channelName], withPresence: true)
+        performSegue(withIdentifier: "leaveChannelSegue", sender: self)
     }
     
     //MARK: PubNub Functions
@@ -97,17 +98,12 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
             messageTextField.text = ""
         }
         
-        
-        
-        
-        
     }
-    //This function is called when this view initialy loads to populate the tableview
-    func loadLastMessages()
-    {
+    //Get and put the histroy of a channel into the messages array
+    func addHiistory(start:NSNumber?,end:NSNumber?,limit:UInt   ){
         //The PubNub Function that returns an object of X messages, and when the first and last messages were sent.
         //The limit is how many messages are received with a maximum and default of 100.
-        client.historyForChannel(channelName,start: nil,end: nil,limit:5){ (result, status) in
+        client.historyForChannel(channelName, start: start, end: end, limit:limit){ (result, status) in
             if(result != nil && status == nil){
                 
                 //We save when the earliest message was sent in order to get ones previous to it when we want to load more.
@@ -117,17 +113,18 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
                 let messageDict = result!.data.messages as! [[String:String]]
                 
                 //Creating new messages from it and putting them at the end of messages array
+                var newMessages :[Message] = []
                 for m in messageDict{
-                    let message = Message(message: m["message"] as! String, username: m["username"] as! String, uuid: m["uuid"] as! String)
-                    self.messages.append(message)
+                    let message = Message(message: m["message"]! , username: m["username"]!, uuid: m["uuid"]! )
+                    newMessages.append(message)
                 }
+                self.messages.insert(contentsOf: newMessages, at: 0)
+                
                 //Reload the table with the new messages and bring the tableview down to the bottom to the most recent messages
                 self.tableView.reloadData()
-                if(!self.messages.isEmpty){
-                    let indexPath = IndexPath(row: self.messages.count-1, section: 0)
-                    self.tableView.scrollToRow(at: indexPath, at: .bottom, animated: true)
-                }
                 
+                //Making sure that we wont be able to try to reload more data until this is completed.
+                self.loadingMore = false
             }
             else if(status !=  nil){
                 print(status!.category)
@@ -138,28 +135,28 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
             }
         }
     }
-    
-    
-    
-    
-    func client(_ client: PubNub, didReceive status: PNStatus) {
-        // Check whether received information about successful subscription or restore.
-        if status.operation == .unsubscribeOperation && status.category == .PNDisconnectedCategory{
-            performSegue(withIdentifier: "leaveChannelSegue", sender: self)
-            
-        }
-        else{
-            print(status)
+    //This function is called when this view initialy loads to populate the tableview
+    func loadLastMessages()
+    {
+        addHiistory(start: nil, end: nil, limit: 10)
+        if(!self.messages.isEmpty){
+            let indexPath = IndexPath(row: self.messages.count-1, section: 0)
+            self.tableView.scrollToRow(at: indexPath, at: .bottom, animated: true)
         }
     }
+    
+    
+    
+    
+
     func client(_ client: PubNub, didReceiveMessage message: PNMessageResult) {
         //Whenever we receive a new message, we add it to the end of our messages array and
         //reload the table so that it shows at thebottom.
-
+        
         if(channelName == message.data.channel)
         {
-            let m = message.data.message as! [String:Any]
-            self.messages.append(Message(message: m["message"] as! String, username: m["username"] as! String, uuid: m["uuid"] as! String))
+            let m = message.data.message as! [String:String]
+            self.messages.append(Message(message: m["message"]!, username: m["username"]!, uuid: m["uuid"]!))
             tableView.reloadData()
             
             
@@ -182,42 +179,9 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
         if(!loadingMore){
             
             //-40 is when you have dragged down from the top of all the messages
-            if(scrollView.contentOffset.y < -40 ) {
+            if(scrollView.contentOffset.y < 5 ) {
                 loadingMore = true
-                
-                //Gets the channels history that starts from the earliest message we received and
-                //we can set a limit here to however many messages we want, 100 and under
-                client.historyForChannel(channelName, start: earliestMessageTime, end: nil,limit:10) { (result, status) in
-                    //We check if the result is nil and if the data we get back is empty,
-                    //if the start and end are 0 that means we have gone through all the back catalog of messages
-                    if(result != nil && result?.data.start != 0 && result?.data.end != 0){
-                        self.earliestMessageTime = result!.data.start
-                        let messageDict = (result?.data.messages as! [[String:Any]])
-                        
-                        //Add all the new messages to a new arry and then insert it into the messages array
-                        var newMessages :[Message] = []
-                        for m in messageDict{
-                            let message = Message(message: m["message"] as! String, username: m["username"] as! String, uuid: m["uuid"] as! String)
-                            newMessages.append(message)
-                        }
-                        self.messages.insert(contentsOf: newMessages, at: 0)
-                        
-                        self.tableView.reloadData()
-                        
-                        
-//                        let indexPath = IndexPath(row: 11, section: 0)
-//                        self.tableView.scrollToRow(at: indexPath, at: .bottom, animated: false)
-                        
-                        self.loadingMore = false
-                        
-                    }
-                    if(status != nil)
-                    {
-                        print(status!)
-                    }
-                    
-                }
-                
+                addHiistory(start: earliestMessageTime, end: nil, limit: 10)
             }
         }
         
