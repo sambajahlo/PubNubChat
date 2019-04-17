@@ -49,6 +49,12 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
         tableView.dataSource = self
         
         
+        //Adding event listeners for the keyboard notifications.
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow(notification:)), name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(notification:)), name: UIResponder.keyboardWillHideNotification, object: nil)
+        
+        
+        
         //Setting up our PubNub object!
         let configuration = PNConfiguration(publishKey: "pub-c-4ce95ecd-4447-481d-8cc7-1080fd34f073", subscribeKey: "sub-c-7e0443e2-5634-11e9-b63d-361a0ea3785d")
         //Gets rid of deprecated warning
@@ -161,6 +167,7 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
             
             
             let indexPath = IndexPath(row: messages.count-1, section: 0)
+            print(messages.count)
             tableView.scrollToRow(at: indexPath, at: .bottom, animated: false)
             
         }
@@ -180,6 +187,7 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
             
             //-40 is when you have dragged down from the top of all the messages
             if(scrollView.contentOffset.y < 5 ) {
+                print(scrollView.contentOffset.y)
                 loadingMore = true
                 addHiistory(start: earliestMessageTime, end: nil, limit: 10)
             }
@@ -195,11 +203,25 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "MessageCell") as! MessageCell
-        
         cell.messageLabel.text = messages[indexPath.row].message
         cell.usernameLabel.text = messages[indexPath.row].username
         
         
         return cell
+    }
+    
+    //Objc method that handles keyboard changes.
+    @objc func keyboardWillShow(notification: NSNotification){
+        guard let userInfo = notification.userInfo else {return}
+        guard let keyboardSize = userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue else {return}
+        let keyboardFrame = keyboardSize.cgRectValue
+        if self.view.frame.origin.y == 0{
+            self.view.frame.origin.y -= keyboardFrame.height
+        }
+    }
+    @objc func keyboardWillHide(notification: NSNotification) {
+        if self.view.frame.origin.y != 0 {
+            self.view.frame.origin.y = 0
+        }
     }
 }

@@ -19,8 +19,32 @@ class ConnectVC: UIViewController, PNObjectEventListener{
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        //Adding event listeners for the keyboard notifications.
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow(notification:)), name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(notification:)), name: UIResponder.keyboardWillHideNotification, object: nil)
+        //NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillChange), name: UIResponder.keyboardDidChangeFrameNotification, object: nil)
         
         
+    }
+//    deinit {
+//        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
+//        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
+//        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+//    }
+    
+    //Objc method that handles keyboard changes.
+    @objc func keyboardWillShow(notification: NSNotification){
+        guard let userInfo = notification.userInfo else {return}
+        guard let keyboardSize = userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue else {return}
+        let keyboardFrame = keyboardSize.cgRectValue
+        if self.view.frame.origin.y == 0{
+            self.view.frame.origin.y -= keyboardFrame.height
+        }
+    }
+    @objc func keyboardWillHide(notification: NSNotification) {
+        if self.view.frame.origin.y != 0 {
+            self.view.frame.origin.y = 0
+        }
     }
     @IBAction func connectToChannel(_ sender: UIButton) {
         
