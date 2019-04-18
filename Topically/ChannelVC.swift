@@ -17,7 +17,7 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
         var uuid: String
     }
     var messages: [Message] = []
-    
+    var noMoreMessages = false
     //Keep track of the earliest message we loaded
     var earliestMessageTime: NSNumber = -1
     
@@ -47,12 +47,15 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
         //Working with the table view
         tableView.delegate = self
         tableView.dataSource = self
+        tableView.transform =  CGAffineTransform(scaleX: 1, y: -1)
         
         
         //Adding event listeners for the keyboard notifications.
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow(notification:)), name: UIResponder.keyboardWillShowNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(notification:)), name: UIResponder.keyboardWillHideNotification, object: nil)
         
+        let tap: UIGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        view.addGestureRecognizer(tap)
         
         
         //Setting up our PubNub object!
@@ -69,6 +72,10 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
         loadLastMessages()
     }
     
+    
+    @objc func dismissKeyboard(){
+        view.endEditing(true)
+    }
     
     
     
@@ -111,7 +118,11 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
         //The limit is how many messages are received with a maximum and default of 100.
         client.historyForChannel(channelName, start: start, end: end, limit:limit){ (result, status) in
             if(result != nil && status == nil){
-                
+                if(result!.data.start == 0 && result?.data.end == 0)
+                {
+                    self.noMoreMessages = true
+                    return
+                }
                 //We save when the earliest message was sent in order to get ones previous to it when we want to load more.
                 self.earliestMessageTime = result!.data.start
                 
@@ -119,12 +130,12 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
                 let messageDict = result!.data.messages as! [[String:String]]
                 
                 //Creating new messages from it and putting them at the end of messages array
-                var newMessages :[Message] = []
+//                var newMessages :[Message] = []
                 for m in messageDict{
                     let message = Message(message: m["message"]! , username: m["username"]!, uuid: m["uuid"]! )
-                    newMessages.append(message)
+                    self.messages.insert(message, at: 0)
                 }
-                self.messages.insert(contentsOf: newMessages, at: 0)
+                
                 
                 //Reload the table with the new messages and bring the tableview down to the bottom to the most recent messages
                 self.tableView.reloadData()
@@ -144,10 +155,9 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
     //This function is called when this view initialy loads to populate the tableview
     func loadLastMessages()
     {
-        addHiistory(start: nil, end: nil, limit: 10)
+        addHiistory(start: nil, end: nil, limit: 20)
         if(!self.messages.isEmpty){
-            let indexPath = IndexPath(row: self.messages.count-1, section: 0)
-            self.tableView.scrollToRow(at: indexPath, at: .bottom, animated: true)
+            self.tableView.scrollsToTop = true
         }
     }
     
@@ -162,13 +172,11 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
         if(channelName == message.data.channel)
         {
             let m = message.data.message as! [String:String]
-            self.messages.append(Message(message: m["message"]!, username: m["username"]!, uuid: m["uuid"]!))
+            self.messages.insert(Message(message: m["message"]!, username: m["username"]!, uuid: m["uuid"]!), at: 0)
             tableView.reloadData()
             
             
-            let indexPath = IndexPath(row: messages.count-1, section: 0)
-            print(messages.count)
-            tableView.scrollToRow(at: indexPath, at: .bottom, animated: false)
+            self.tableView.scrollsToTop = true
             
         }
         
@@ -183,13 +191,13 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
     //This method allows users to query for more messages by dragging down from the top.
     func scrollViewDidScroll(_ scrollView: UIScrollView){
         //If we are not loading more messages already
-        if(!loadingMore){
-            
-            //-40 is when you have dragged down from the top of all the messages
-            if(scrollView.contentOffset.y < 5 ) {
-                print(scrollView.contentOffset.y)
+        if(!loadingMore && !noMoreMessages){
+            let indexWant = IndexPath(row: messages.count - 1, section: 0)
+            let visible = tableView.indexPathsForVisibleRows
+            if(visible!.contains(indexWant)){
                 loadingMore = true
                 addHiistory(start: earliestMessageTime, end: nil, limit: 10)
+                
             }
         }
         
@@ -202,10 +210,11 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        
         let cell = tableView.dequeueReusableCell(withIdentifier: "MessageCell") as! MessageCell
         cell.messageLabel.text = messages[indexPath.row].message
         cell.usernameLabel.text = messages[indexPath.row].username
-        
+        cell.transform = CGAffineTransform(scaleX: 1, y: -1)
         
         return cell
     }
@@ -215,6 +224,7 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
         guard let userInfo = notification.userInfo else {return}
         guard let keyboardSize = userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue else {return}
         let keyboardFrame = keyboardSize.cgRectValue
+        
         if self.view.frame.origin.y == 0{
             self.view.frame.origin.y -= keyboardFrame.height
         }
