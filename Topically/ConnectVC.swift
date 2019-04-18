@@ -22,15 +22,19 @@ class ConnectVC: UIViewController, PNObjectEventListener{
         //Adding event listeners for the keyboard notifications.
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow(notification:)), name: UIResponder.keyboardWillShowNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(notification:)), name: UIResponder.keyboardWillHideNotification, object: nil)
-        //NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillChange), name: UIResponder.keyboardDidChangeFrameNotification, object: nil)
+        
+        let tap: UIGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        view.addGestureRecognizer(tap)
         
         
     }
-//    deinit {
-//        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
-//        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
-//        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
-//    }
+
+    @objc func dismissKeyboard(){
+        view.endEditing(true)
+    }
+    @IBAction func done(_ sender: UITextField) {
+        view.endEditing(true)
+    }
     
     //Objc method that handles keyboard changes.
     @objc func keyboardWillShow(notification: NSNotification){

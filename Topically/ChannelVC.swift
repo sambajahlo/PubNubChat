@@ -251,8 +251,5 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
     }
     @objc func keyboardWillHide(notification: NSNotification) {
         bottomConstraint.constant = 0
-//        if self.view.frame.origin.y != 0 {
-//            self.view.frame.origin.y = 0
-//        }
     }
 }
