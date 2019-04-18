@@ -24,6 +24,8 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
     //To keep track if we are already loading more messages
     var loadingMore = false
     
+    @IBOutlet weak var bottomConstraint: NSLayoutConstraint!
+    
     //Our PubNub object that we will use to publish, subscribe, and get the history of our channel
     var client: PubNub!
     
@@ -225,13 +227,32 @@ class ChannelVC: UIViewController,PNObjectEventListener, UITableViewDataSource, 
         guard let keyboardSize = userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue else {return}
         let keyboardFrame = keyboardSize.cgRectValue
         
-        if self.view.frame.origin.y == 0{
-            self.view.frame.origin.y -= keyboardFrame.height
+        //THIS LETS US DETECT WHAT PHONE SIZE IS BEING USED, AND THUS LETS US DECIDE WHETHER TO ACCOMADATE FOR THE SAFE AREA OR NOT
+        
+        if UIDevice().userInterfaceIdiom == .phone {
+            switch UIScreen.main.nativeBounds.height {
+            case 1136,1334,1920, 2208:
+                print("Iphone with no safe area")
+                bottomConstraint.constant =  -keyboardFrame.height
+                
+            case 2436,2688,1792:
+                print("iPhone Xx")
+                bottomConstraint.constant =  -keyboardFrame.height + 36
+                
+            default:
+                print("Couldnt detect which iPhone being used, using default constraint")
+                bottomConstraint.constant =  -keyboardFrame.height + 36
+            }
         }
+        
+        
+        
+        
     }
     @objc func keyboardWillHide(notification: NSNotification) {
-        if self.view.frame.origin.y != 0 {
-            self.view.frame.origin.y = 0
-        }
+        bottomConstraint.constant = 0
+//        if self.view.frame.origin.y != 0 {
+//            self.view.frame.origin.y = 0
+//        }
     }
 }
