@@ -7,7 +7,7 @@ An anonymous chat appliction that uses PubNub API features such as Publish, Subs
 ## Use PubNub to create applications 
 This app is powered by PubNub, create solutions for any use case with their fast and reliable service by [signing up!](https://dashboard.pubnub.com/signup) PubNub delivers messages of up to 32kb in under 250ms, connect as many users or pieces of tech as you like around the world.
 
-[See how to create an app like this!](link later)
+[See how to create an app like this!](https://www.pubnub.com/blog/how-to-build-ios-mobile-group-chat-app-swift-5-pubnub/)
 
 
 ## Project setup
