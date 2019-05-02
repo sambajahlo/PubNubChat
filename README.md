@@ -5,14 +5,19 @@ An anonymous chat appliction that uses PubNub API features such as Publish, Subs
 ![chat gif](https://github.com/SambaDialloB/PubNubChat/blob/master/chat.gif)
 
 ## Use PubNub to create applications 
-This app is powered by PubNub, create solutions for any use case with their fast and reliable service by [signing up!](https://dashboard.pubnub.com/signup) PubNub delivers messages of up to 32kb in under 250ms, connect as many users or pieces of tech as you like around the world.
+This app is powered by PubNub, create solutions for any use case with their fast and reliable service by signing up! PubNub delivers messages of up to 32kb in under 250ms, connect as many users or pieces of tech as you like around the world.
 
-[See how to create an app like this!](https://www.pubnub.com/blog/how-to-build-ios-mobile-group-chat-app-swift-5-pubnub/)
+<a href="https://www.pubnub.com/blog/how-to-build-ios-mobile-group-chat-app-swift-5-pubnub/?devrel_gh=PubNubChat">
+    <img alt="PubNub Blog" src="https://i.imgur.com/aJ927CO.png" width=260 height=98/>
+</a>
 
 
 ## Project setup
 - [ ] Clone this repository and open the .xworkspace file in XCode.
-- [ ] Put in your own Publish and Subscribe keys into the ChannelVC.swift file. If you don't have your own keys follow [this guide to create your own!](https://medium.com/@shabashiki/how-to-use-pubnub-in-your-swift-application-90aa873e0c79)
+- [ ] Put in your own Publish and Subscribe keys into the ChannelVC.swift file.
+<a href="https://dashboard.pubnub.com/signup?devrel_gh=PubNubChat">
+    <img alt="PubNub Signup" src="https://i.imgur.com/og5DDjf.png" width=260 height=97/>
+</a> 
 - [ ] Run the project!
 
 ## Further
